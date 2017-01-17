@@ -11,10 +11,13 @@ import msgpack_numpy as m
 from ctapipe.reco.FitGammaHillas import FitGammaHillas
 from ctapipe.io.hessio import hessio_event_source
 
-
+# we read the instrument configuration from an arbitrary simtel file
+# instrument info does not change per event. (except for pointing maybe)
 source = hessio_event_source('gamma_test.simtel.gz', max_events=7)
 instrument = next(source).inst
-# Create a local StreamingContext with two working thread and batch interval of 1 second
+
+# Create a local StreamingContext with three working threads and batch
+# interval of 5 seconds
 sc = SparkContext('local[3]', 'test app')
 broadcastInst = sc.broadcast(instrument)
 ssc = StreamingContext(sc, 5)
@@ -30,7 +33,6 @@ def reco(single_telescope_data):
 
 
 def hillas(event):
-    # print(event)
     hillas_dict = {}
     tel_phi = {}
     tel_theta = {}
@@ -77,7 +79,6 @@ dataStream = KafkaUtils.createStream(ssc=ssc,
                                       'fetch.message.max.bytes': '104857600',
                                       })
 
-# dataStream = ssc.
 
 sums = dataStream.mapValues(hillas)\
                  .filter(lambda t: len(t[1][0]) > 2)\
@@ -87,38 +88,3 @@ sums.pprint()
 
 ssc.start()
 ssc.awaitTerminationOrTimeout(timeout=600)
-
-# ts = sc.parallelize(words, 2).map(lambda w: (w, 1))
-# print(ts)
-# counts = ts.reduceByKey(lambda b, c: b + c)
-# sorted_counts = counts.sortBy(lambda k: k[1], ascending=False)
-#
-#
-# print(sorted_counts.take(20))
-
-#
-# import sys
-# from operator import add
-#
-# from pyspark.sql import SparkSession
-#
-#
-# if __name__ == "__main__":
-#     if len(sys.argv) != 2:
-#         print("Usage: wordcount <file>", file=sys.stderr)
-#         exit(-1)
-#
-#     spark = SparkSession\
-#         .builder\
-#         .appName("PythonWordCount")\
-#         .getOrCreate()
-#
-#     lines = spark.read.text(sys.argv[1]).rdd.map(lambda r: r[0])
-#     counts = lines.flatMap(lambda x: x.split(' ')) \
-#                   .map(lambda x: (x, 1)) \
-#                   .reduceByKey(add)
-#     output = counts.collect()
-#     for (word, count) in output:
-#         print("%s: %i" % (word, count))
-#
-#     spark.stop()
