@@ -57,11 +57,14 @@ def create_serialized_data(event):
 
 def send_data(data_topic):
     data_producer = data_topic.get_producer(max_request_size=3000036)
+    i = 0
     for event in cycle(events):
-        time.sleep(0.5)  # sleep a second
+        # time.sleep(0.5)  # sleep a second
+        i += 1
         data = create_serialized_data(event)
         event_id = event.dl0.event_id
-        logging.debug('Sending Data')
+        if i % 1000 == 0:
+            logging.debug('Sending Data')
         data_producer.produce(data, partition_key='{}'.format(event_id).encode())
 
 #
@@ -78,7 +81,7 @@ def send_data(data_topic):
 def main():
     client = KafkaClient(hosts='localhost:9092')
     data_topic = client.topics['data'.encode()]
-    slow_topic = client.topics['slow'.encode()]
+    # slow_topic = client.topics['slow'.encode()]
     # producer = KafkaProducer(bootstrap_servers='localhost:9092',
     #                          key_serializer=str.encode,
     #                          value_serializer=teh_pickle
