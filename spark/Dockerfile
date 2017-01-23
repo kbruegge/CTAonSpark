@@ -49,5 +49,7 @@ ENV PYTHONPATH /spark/python
 
 EXPOSE 5555 8080 7077 9080 9081 57600 7600 8181 9990 4040 55200 45700 8081
 
+ADD ./scripts/ /scripts
+
 CMD [ "/bin/bash" ]
 #now you can  try something like: python spark/examples/src/main/python/pi.py

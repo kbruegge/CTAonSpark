@@ -1,7 +1,9 @@
 master:
-  image: spark-standalone
-  command: bin/spark-class org.apache.spark.deploy.master.Master -h master
+  build: spark
+  command: /spark/bin/spark-class org.apache.spark.deploy.master.Master
   hostname: master
+  mem_limit: 4g
+  cpuset: "0,1"
   environment:
     MASTER: spark://master:7077
     SPARK_CONF_DIR: /conf
@@ -19,19 +21,51 @@ master:
     - 4040:4040
     - 6066:6066
     - 7077:7077
-    - 8080:8080
-  volumes:
-    - ./conf/master:/conf
-    - ./data:/tmp/data
+    - 8091:8080
+
+zookeeper:
+  image: jplock/zookeeper
+  hostname: zookeeper
+  mem_limit: 4g
+  cpuset: "0,1"
+  expose:
+    - 2181
+    - 2888
+    - 3888
+  ports:
+    - 2181:2181
+    - 2888:2888
+    - 3888:3888
+  links:
+    - master
+
+kafka: 
+  image: digitalwonderland/kafka:latest
+  hostname: kafka
+  mem_limit: 4g
+  environment: 
+    KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    KAFKA_BROKER_ID: -1
+    KAFKA_ADVERTISED_HOST_NAME: kafka
+  cpuset: "0,1"
+  expose: 
+    - 9092
+  ports: 
+    - 9092:902
+  links:
+    - master
+    - zookeeper
 
 worker:
-  image: spark-standalone
-  command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://master:7077
+  build: spark
+  command: /spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://master:7077
   hostname: worker
+  mem_limit: 4g
+  cpuset: "0,1"
   environment:
     SPARK_CONF_DIR: /conf
     SPARK_WORKER_CORES: 2
-    SPARK_WORKER_MEMORY: 1g
+    SPARK_WORKER_MEMORY: 4g
     SPARK_WORKER_PORT: 8881
     SPARK_WORKER_WEBUI_PORT: 8081
     SPARK_PUBLIC_DNS: localhost
@@ -44,8 +78,3 @@ worker:
     - 7015
     - 7016
     - 8881
-  ports:
-    - 8081:8081
-  volumes:
-    - ./conf/worker:/conf
-    - ./data:/tmp/data
